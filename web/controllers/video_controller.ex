@@ -1,7 +1,19 @@
 defmodule Rumbl.VideoController do
+  # this one had some interesting stuff. First of all creating our own "action" functions
+  # which routes requests to specific functions. the generic one of these is
+  # found in Phoenix.Controller.Pipeline module in the Phoenix dependency or
+  # ./deps/phoenix/lib/phoenix/controller/pipeline.ex. We do this to ensure a
+  # common parameter is used by all action functions (index, new, create, ect.)
+  #
+  # also interesting is all the ecto stuff like assoc/2 and build_assoc/2
+  # need to read more about that and use those more.
+
   use Rumbl.Web, :controller
 
   alias Rumbl.Video
+  alias Rumbl.Category
+
+  plug :load_categories when action in [:new, :create, :edit, :update]
 
   def action(conn, _) do
     apply(__MODULE__, action_name(conn), [conn, conn.params, conn.assigns.current_user])
@@ -71,6 +83,15 @@ defmodule Rumbl.VideoController do
     conn
     |> put_flash(:info, "Video deleted successfully.")
     |> redirect(to: video_path(conn, :index))
+  end
+
+  defp load_categories(conn, _) do
+    query =
+      Category
+      |> Category.alphabetical
+      |> Category.names_and_ids
+    categories = Repo.all(query)
+    assign(conn, :categories, categories)
   end
 
   defp user_videos(user) do
